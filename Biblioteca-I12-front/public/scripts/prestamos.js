@@ -26,6 +26,12 @@ const contenedorHistorial =
 const inputBuscar =
   document.getElementById("inputBuscar");
 
+let prestamosGuardados = {
+  activos: [],
+  morosos: [],
+  devueltos: []
+};
+
 
 // ---------------------------------------------------------
 // COLUMNAS
@@ -58,12 +64,12 @@ const columnas = [
 ];
 
 const columnasHistorial = [
-    ...columnas,
-    {
-        clave: "fecha_devolucion",
-        texto: "Fecha de devolución",
-        render: (item) => item.fecha_devolucion || "—"
-    }
+  ...columnas,
+  {
+    clave: "fecha_devolucion",
+    texto: "Fecha de devolución",
+    render: (item) => item.fecha_devolucion || "—"
+  }
 ];
 
 
@@ -291,7 +297,7 @@ btnGuardarComentario.addEventListener(
       });
 
 
-      await renderizarTablas();
+      await cargarPrestamos();
 
 
     } catch (error) {
@@ -351,7 +357,7 @@ function confirmarDevolucion(
       );
 
 
-      await renderizarTablas();
+      await cargarPrestamos();
 
 
       Swal.fire({
@@ -413,7 +419,7 @@ function confirmarMoroso(
       );
 
 
-      await renderizarTablas();
+      await cargarPrestamos();
 
 
       Swal.fire({
@@ -514,7 +520,7 @@ function crearBotonEditar(prestamo) {
 // RENDERIZAR TABLAS
 // ---------------------------------------------------------
 
-async function renderizarTablas() {
+function renderizarTablas() {
 
   try {
 
@@ -522,48 +528,61 @@ async function renderizarTablas() {
       activos,
       morosos,
       devueltos
-    } = await obtenerPrestamosPorEstado();
+    } = prestamosGuardados;
 
 
-    const textoBusqueda =
-      inputBuscar.value
-        .trim()
-        .toLowerCase();
+    const textoBusqueda = inputBuscar.value
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
 
 
     // -----------------------------------------------------
     // FILTRAR
     // -----------------------------------------------------
 
-    function filtrarPorDestinatario(lista) {
+    function filtrarPrestamos(lista) {
 
       if (textoBusqueda === "") {
         return lista;
       }
 
+      return lista.filter((prestamo) => {
 
-      return lista.filter(
-        (prestamo) =>
+        const destinatario = String(prestamo.destinatario || "")
+          .toLowerCase()
+          .replace(/\s+/g, " ");
 
-          prestamo.destinatario &&
+        const nombre = String(prestamo.insumo || "")
+          .toLowerCase()
+          .replace(/\s+/g, " ")
+          .trim();
 
-          prestamo.destinatario
-            .toLowerCase()
-            .includes(textoBusqueda)
-      );
+        const numeracion = prestamo.numeracion ?? "";
+
+        const nombreCompleto = numeracion !== ""
+          ? `${nombre} nº ${numeracion}`
+          : nombre;
+
+        const nombreSinPrefijo = numeracion !== ""
+          ? `${nombre} ${numeracion}`
+          : nombre;
+
+        return destinatario.includes(textoBusqueda) ||
+          nombreCompleto.includes(textoBusqueda) ||
+          nombreSinPrefijo.includes(textoBusqueda);
+      });
     }
 
 
     const activosFiltrados =
-      filtrarPorDestinatario(activos);
-
+      filtrarPrestamos(activos);
 
     const morososFiltrados =
-      filtrarPorDestinatario(morosos);
-
+      filtrarPrestamos(morosos);
 
     const devueltosFiltrados =
-      filtrarPorDestinatario(devueltos)
+      filtrarPrestamos(devueltos)
         .sort(
           (a, b) =>
             new Date(b.fecha) -
@@ -979,7 +998,7 @@ formEditarPrestamo.addEventListener("submit", async (e) => {
 
     modalEditarPrestamo.hide();
 
-    await renderizarTablas();
+    await cargarPrestamos();
 
     Swal.fire({
       title: "Préstamo actualizado",
@@ -1005,8 +1024,20 @@ formEditarPrestamo.addEventListener("submit", async (e) => {
 // ---------------------------------------------------------
 // CARGAR AL INICIAR
 // ---------------------------------------------------------
+async function cargarPrestamos() {
+  prestamosGuardados = await obtenerPrestamosPorEstado();
+  renderizarTablas();
+}
 
-renderizarTablas();
+cargarPrestamos().catch((error) => {
+  console.error("Error al cargar préstamos:", error);
+
+  Swal.fire({
+    title: "Error de conexión",
+    text: "No se pudieron cargar los préstamos. Intentá nuevamente.",
+    icon: "error"
+  });
+});
 
 
 // ---------------------------------------------------------
