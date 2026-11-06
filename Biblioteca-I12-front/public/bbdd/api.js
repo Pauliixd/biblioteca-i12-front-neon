@@ -5,7 +5,9 @@
 //const BASE_URL = "http://127.0.0.1:8000"; // cambiar si el back corre en otro puerto/host
 //const BASE_URL = "https://back-biblio-lfhc.onrender.com";
 //const BASE_URL = "http://127.0.0.1:8000";
- const BASE_URL = "https://back-biblio-lfhc.onrender.com";
+ //const BASE_URL = "https://back-biblio-lfhc.onrender.com";
+ const BASE_URL = "https://biblioteca-i12-neon.onrender.com";
+
 
 // ---------------------------------------------------------
 // IDs fijos de EstadoInsumo 
